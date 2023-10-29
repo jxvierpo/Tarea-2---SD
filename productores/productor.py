@@ -1,4 +1,5 @@
 from confluent_kafka import Producer
+from confluent_kafka.admin import NewTopic
 from confluent_kafka.admin import AdminClient
 
 KAFKA_BROKER = 'kafka:9092'
@@ -15,11 +16,12 @@ def delivery_report(err, msg):
 def create_topics():
     admin_client = AdminClient({'bootstrap.servers': KAFKA_BROKER})
     topics = [
-        {"topic": "ingreso", "num_partitions": 2, "replication_factor": 1},
-        {"topic": "ventas", "num_partitions": 2, "replication_factor": 1},
-        {"topic": "stock", "num_partitions": 2, "replication_factor": 1},
-        {"topic": "avisos", "num_partitions": 2, "replication_factor": 1}
+        NewTopic("ingreso", num_partitions=2, replication_factor=1),
+        NewTopic("ventas", num_partitions=2, replication_factor=1),
+        NewTopic("stock", num_partitions=2, replication_factor=1),
+        NewTopic("avisos", num_partitions=2, replication_factor=1)
     ]
+
     admin_client.create_topics(topics)
 
 create_topics()
