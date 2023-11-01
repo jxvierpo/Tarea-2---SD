@@ -4,7 +4,7 @@ KAFKA_BROKER = 'kafka:9092'
 GROUP_ID = 'stock'
 
 carrosRegistrados = set()
-contadorVentas = {}
+stockCarros = {}  # Diccionario para almacenar el stock de cada carro
 
 consumer = Consumer({
     'bootstrap.servers': KAFKA_BROKER,
@@ -22,14 +22,14 @@ def procesar_mensaje(mensaje):
         print(f"Error: Carro con patente {patente} no registrado.")
         return
 
-    if patente not in contadorVentas:
-        contadorVentas[patente] = 1
+    # Actualizar el stock del carro
+    stock_adicional = data.get('stock_adicional', 0)
+    if patente not in stockCarros:
+        stockCarros[patente] = stock_adicional
     else:
-        contadorVentas[patente] += 1
+        stockCarros[patente] += stock_adicional
 
-    if contadorVentas[patente] == 5 or int(data['stock_restante']) < 20:
-        print(f'Carro {patente} necesita reponer Stock!')
-        contadorVentas[patente] = 0
+    print(f"Stock actualizado para el carro con patente {patente}. Stock total: {stockCarros[patente]}")
 
 def poll_kafka():
     while True:
@@ -42,11 +42,6 @@ def poll_kafka():
             else:
                 print(f"Error while polling message: {msg.error()}")
         else:
-            partition = msg.partition()
-            if partition == 0:
-                print(f"Nuevo registro de un miembro normal desde la partición {partition}")
-            elif partition == 1:
-                print(f"Nuevo registro de un miembro premium desde la partición {partition}")
             procesar_mensaje(msg)
 
 if __name__ == "__main__":

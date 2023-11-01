@@ -1,11 +1,15 @@
+import json
+import time
+import smtplib
+from email.message import EmailMessage
 from confluent_kafka import Consumer, KafkaError
 
 KAFKA_BROKER = 'kafka:9092'
 GROUP_ID = 'ventas'
 
+
 carrosRegistrados = set()
-registro = {}
-resultados = {}
+ventasTotales = {}
 
 consumer = Consumer({
     'bootstrap.servers': KAFKA_BROKER,
@@ -15,40 +19,41 @@ consumer = Consumer({
 
 consumer.subscribe(['ventas'])
 
+def send_email(to_email, subject, body):
+    msg = EmailMessage()
+    msg.set_content(body)
+    msg['Subject'] = subject
+    msg['From'] = 'reemplazacontumail@gmail.com'  # Reemplaza con tu dirección de Gmail
+    msg['To'] = to_email
+
+    # Configuración del servidor SMTP para Gmail
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login('reemplazacontumail@gmail.com', 'tupass')  # Reemplaza con tu dirección de Gmail y contraseña
+    server.send_message(msg)
+    server.quit()
+
+
 def procesar_mensaje(mensaje):
-    data = eval(mensaje.value().decode('utf-8'))
+    data_str = mensaje.value().decode('utf-8')
+    data = json.loads(data_str)
+
     patente = data['patente']
-    
+    email = data['email_vendedor']
+    stock_restante = data['stock_restante']
+    # Registrar la patente si no está en carrosRegistrados
     if patente not in carrosRegistrados:
-        print(f"Error: Carro con patente {patente} no registrado.")
-        return
+        carrosRegistrados.add(patente)
+        ventasTotales[patente] = 0
 
-    if patente not in registro:
-        registro[patente] = [data]
-    else:
-        registro[patente].append(data)
+    # Sumar las ventas para esa patente
+    ventasTotales[patente] += int(data['cantidad'])
 
-def calcular_estadisticas():
-    for patente, ventas in registro.items():
-        contadorVentas = len(ventas)
-        clientes = {venta['cliente'] for venta in ventas}
-        cantidad = sum(int(venta['cantidad']) for venta in ventas)
-
-        ventasTotales = contadorVentas
-        clientesTotales = len(clientes)
-        promedioVentas = cantidad / clientesTotales
-
-        resultados[patente] = {
-            'ventas_totales': ventasTotales,
-            'clientes_totales': clientesTotales,
-            'promedio_ventas': promedioVentas
-        }
-
-    for patente, stats in resultados.items():
-        print(f"Carro: {patente}")
-        print(f"Ventas totales: {stats['ventas_totales']}")
-        print(f"Clientes totales: {stats['clientes_totales']}")
-        print(f"Promedio de ventas: {stats['promedio_ventas']:.2f}")
+    # Imprimir el total de ventas para esa patente
+    email_body = (f"Total de ventas para el carro con patente {patente}: {ventasTotales[patente]}." 
+                  f"Stock restante {stock_restante}. ")
+    send_email(email, "Registro de venta en MAMOCHI", email_body)
+    
 
 def poll_kafka():
     while True:
@@ -61,15 +66,12 @@ def poll_kafka():
             else:
                 print(f"Error while polling message: {msg.error()}")
         else:
-            partition = msg.partition()
-            if partition == 0:
-                print(f"Nuevo registro de un miembro normal desde la partición {partition}")
-            elif partition == 1:
-                print(f"Nuevo registro de un miembro premium desde la partición {partition}")
             procesar_mensaje(msg)
 
 if __name__ == "__main__":
     try:
         poll_kafka()
     except KeyboardInterrupt:
-        calcular_estadisticas()
+        print("\nResumen de ventas:")
+        for patente, total in ventasTotales.items():
+            print(f"Patente: {patente} - Ventas totales: {total}")

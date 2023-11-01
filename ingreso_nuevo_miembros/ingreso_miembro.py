@@ -1,3 +1,7 @@
+import json
+import time
+import smtplib
+from email.message import EmailMessage
 from confluent_kafka import Consumer, KafkaError
 
 KAFKA_BROKER = 'kafka:9092'
@@ -13,6 +17,22 @@ consumer = Consumer({
 
 consumer.subscribe(['ingreso'])
 
+
+def send_email(to_email, subject, body):
+    msg = EmailMessage()
+    msg.set_content(body)
+    msg['Subject'] = subject
+    msg['From'] = 'reemplazacontumail@gmail.com'  # Reemplaza con tu dirección de Gmail
+    msg['To'] = to_email
+
+    # Configuración del servidor SMTP para Gmail
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login('reemplazacontumail@gmail.com', 'tupass')  # Reemplaza con tu dirección de Gmail y contraseña
+    server.send_message(msg)
+    server.quit()
+
+    
 def poll_kafka():
     while True:
         msg = consumer.poll(1.0)
@@ -24,13 +44,24 @@ def poll_kafka():
             else:
                 print(f"Error while polling message: {msg.error()}")
         else:
-            data = msg.value().decode('utf-8')
+            data_str = msg.value().decode('utf-8')
+            data = json.loads(data_str)
             lista_nuevos_miembros.append(data)
+            nombre = data['nombre']
+            email = data['email']
+            patente = data['patente']
+            is_paid = data['paid']
+
             partition = msg.partition()
+
             if partition == 0:
+                time.sleep(10)
                 print(f"Nuevo registro de un miembro normal desde la partición {partition}: {data}")
             elif partition == 1:
-                print(f"Nuevo registro de un miembro premium desde la partición {partition}: {data}")
+                print(f"Nuevo registro de un miembro paid desde la partición {partition}: {data}")
+
+            email_body = f"Hola {nombre}, te has registrado exitosamente con la patente {patente} como un miembro {'paid' if is_paid else 'normal'}."
+            send_email(email, "Registro exitoso en MAMOCHI", email_body)
 
 if __name__ == "__main__":
     poll_kafka()
