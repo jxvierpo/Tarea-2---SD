@@ -32,13 +32,13 @@ def send_email(to_email, subject, body):
     msg = EmailMessage()
     msg.set_content(body)
     msg['Subject'] = subject
-    msg['From'] = 'javierigna.ahumada@mail.udp.cl'  # Reemplaza con tu dirección de Gmail
+    msg['From'] = 'reemplazatumail@gmail.com'  # Reemplaza con tu dirección de Gmail
     msg['To'] = to_email
 
     # Configuración del servidor SMTP para Gmail
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    server.login('javierigna.ahumada@mail.udp.cl', 'javier123?')  # Reemplaza con tu dirección de Gmail y contraseña
+    server.login('reemplazatumail@gmail.com', 'tupass')  # Reemplaza con tu dirección de Gmail y contraseña
     server.send_message(msg)
     server.quit()
 
