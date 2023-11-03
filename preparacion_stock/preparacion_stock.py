@@ -1,7 +1,17 @@
 from confluent_kafka import Consumer, KafkaError
+import psycopg2
 
 KAFKA_BROKER = 'kafka:9092'
 GROUP_ID = 'stock'
+
+conn = psycopg2.connect(
+    dbname="tarea2",
+    user="postgres",
+    password="postgres",
+    host="postgres",  # Nombre del servicio en docker-compose
+    port="5432"
+)
+cursor = conn.cursor()
 
 carrosRegistrados = set()
 stockCarros = {}  # Diccionario para almacenar el stock de cada carro
@@ -18,18 +28,22 @@ def procesar_mensaje(mensaje):
     data = eval(mensaje.value().decode('utf-8'))
     patente = data['patente']
     
-    if patente not in carrosRegistrados:
+    # Verificar si el carro está registrado
+    cursor.execute("SELECT * FROM carros WHERE patente = %s", (patente,))
+    if cursor.fetchone() is None:
         print(f"Error: Carro con patente {patente} no registrado.")
         return
+    
 
     # Actualizar el stock del carro
     stock_adicional = data.get('stock_adicional', 0)
-    if patente not in stockCarros:
-        stockCarros[patente] = stock_adicional
-    else:
-        stockCarros[patente] += stock_adicional
+    cursor.execute("UPDATE carros SET stock = stock + %s WHERE patente = %s", (stock_adicional, patente))
+    conn.commit()
 
-    print(f"Stock actualizado para el carro con patente {patente}. Stock total: {stockCarros[patente]}")
+    cursor.execute("SELECT stock FROM carros WHERE patente = %s", (patente,))
+    stock_actualizado = cursor.fetchone()[0]
+    print(f"Stock actualizado para el carro con patente {patente}. Stock total: {stock_actualizado}")
+
 
 def poll_kafka():
     while True:

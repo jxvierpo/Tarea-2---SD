@@ -7,9 +7,9 @@ WORKDIR /app
 # Copiar el código fuente al contenedor
 COPY . .
 
-RUN pip install confluent-kafka
-
-
+# Instalar las dependencias necesarias
+# psycopg2-binary es la versión precompilada de psycopg2
+RUN pip install confluent-kafka psycopg2-binary
 
 # Comando para ejecutar la aplicación
 CMD ["python", "productor.py"]

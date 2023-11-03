@@ -1,5 +1,5 @@
 # Use an official Python runtime as the parent image
-FROM python:3.8-slim
+FROM python:3.9-slim
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -8,7 +8,8 @@ WORKDIR /app
 COPY . /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --trusted-host pypi.python.org confluent-kafka
+RUN pip install --trusted-host pypi.python.org confluent-kafka psycopg2-binary
+
 
 # Make port 3000 available to the world outside this container
 EXPOSE 3000

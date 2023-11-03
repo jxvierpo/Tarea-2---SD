@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . .
 
 # Instalamos las bibliotecas necesarias
-RUN pip install confluent-kafka
+RUN pip install confluent-kafka psycopg2-binary
 
 
 

@@ -1,11 +1,21 @@
 import json
 import time
 import smtplib
+import psycopg2
 from email.message import EmailMessage
 from confluent_kafka import Consumer, KafkaError
 
 KAFKA_BROKER = 'kafka:9092'
 GROUP_ID = 'ingreso'
+
+conn = psycopg2.connect(
+    dbname="tarea2",
+    user="postgres",
+    password="postgres",
+    host="postgres",  # Nombre del servicio en docker-compose
+    port="5432"
+)
+cursor = conn.cursor()
 
 lista_nuevos_miembros = []
 
@@ -22,15 +32,16 @@ def send_email(to_email, subject, body):
     msg = EmailMessage()
     msg.set_content(body)
     msg['Subject'] = subject
-    msg['From'] = 'reemplazacontumail@gmail.com'  # Reemplaza con tu dirección de Gmail
+    msg['From'] = 'javierigna.ahumada@mail.udp.cl'  # Reemplaza con tu dirección de Gmail
     msg['To'] = to_email
 
     # Configuración del servidor SMTP para Gmail
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    server.login('reemplazacontumail@gmail.com', 'tupass')  # Reemplaza con tu dirección de Gmail y contraseña
+    server.login('javierigna.ahumada@mail.udp.cl', 'javier123?')  # Reemplaza con tu dirección de Gmail y contraseña
     server.send_message(msg)
     server.quit()
+
 
     
 def poll_kafka():

@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . .
 
 # Instalar las bibliotecas necesarias
-RUN pip install confluent-kafka
+RUN pip install confluent-kafka psycopg2-binary
 
 # Comando para ejecutar el script Python cuando el contenedor se inicie
 CMD ["python", "./preparacion_stock.py"]
